@@ -44,7 +44,13 @@ async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
     "metrics": metrics   # 🔥 store it
     }
     # 🔥 STEP 2: run AI in background
-    background_tasks.add_task(run_ai_background, video_id, metrics)
+    import threading
+
+    threading.Thread(
+        target=run_ai_background,
+        args=(video_id, metrics),
+        daemon=True
+    ).start()
 
     return {
         "video_id": video_id,
@@ -54,9 +60,10 @@ async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
 
 # ------------------------
 # BACKGROUND AI
-# ------------------------
 def run_ai_background(video_id, metrics):
     try:
+        print("Starting AI for", video_id)
+
         result = run_ai_only(metrics)
 
         RESULT_STORE[video_id] = {
@@ -68,7 +75,11 @@ def run_ai_background(video_id, metrics):
             "practice": result["practice"],
         }
 
+        print("AI DONE", video_id)
+
     except Exception as e:
+        print("AI ERROR:", str(e))
+
         RESULT_STORE[video_id] = {
             "status": "error",
             "error": str(e)
@@ -79,8 +90,9 @@ def run_ai_background(video_id, metrics):
 # ------------------------
 @router.get("/status/{video_id}")
 def get_status(video_id: str):
-    return RESULT_STORE.get(video_id, {"status": "processing"})
-
+    status = RESULT_STORE.get(video_id, {"status": "processing"})
+    print("STATUS CHECK:", video_id, status["status"])
+    return status
 
 # ------------------------
 # VIDEO SERVE
