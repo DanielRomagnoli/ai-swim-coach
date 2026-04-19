@@ -48,20 +48,16 @@ def run_ai_only(metrics):
         analyze_metrics,
         generate_feedback,
         suggest_drills,
-        generate_practice
+        generate_practice,
+        full_analysis
     )
 
-    issues = analyze_metrics(metrics)
-
-    feedback = generate_feedback(issues)
-    drills = suggest_drills(issues)
-    practice = generate_practice(issues)
-
+    result = full_analysis(metrics)
     return {
         "metrics": metrics,
-        "feedback": feedback,
-        "drills": drills,
-        "practice": practice
+        "feedback": result["feedback"],
+        "drills": result["drills"],
+        "practice": result["practice"],
     }
 
 def run_pipeline(input_path, output_path):
