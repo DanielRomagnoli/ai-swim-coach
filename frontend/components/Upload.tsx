@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function Upload({ setContext, setResult }: any) {
   const [file, setFile] = useState<File | null>(null);
@@ -18,7 +19,7 @@ export default function Upload({ setContext, setResult }: any) {
     setStatus("Uploading...");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload", {
+      const res = await fetch('${API}/chat', {
         method: "POST",
         body: formData,
       });

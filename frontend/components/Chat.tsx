@@ -2,7 +2,7 @@
 import { MessageCircle } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-
+const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 export default function Chat({ context }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -20,7 +20,7 @@ export default function Chat({ context }: any) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat", {
+      const res = await fetch('${API}/chat', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

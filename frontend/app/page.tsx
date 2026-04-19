@@ -14,6 +14,7 @@ import {
   Brain,
 } from "lucide-react";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const metricIcons: any = {
   stroke_rate: <Gauge size={18} />,
@@ -69,7 +70,7 @@ export default function Home() {
               controls
             >
               <source
-                src={`http://127.0.0.1:8000/processed/${result.processed_video}`}
+                src={`${API}/processed/${result.processed_video}`}
               />
             </video>
           </div>
