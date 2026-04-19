@@ -6,6 +6,7 @@ from app.services.pipeline import run_pipeline
 from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 import io
+import base64
 
 router = APIRouter()
 
@@ -52,7 +53,12 @@ async def upload_from_url(data: dict):
     with open(output_path, "rb") as f:
         video_bytes = f.read()
 
-    return StreamingResponse(
-        io.BytesIO(video_bytes),
-        media_type="video/mp4"
-    )
+    video_base64 = base64.b64encode(video_bytes).decode("utf-8")
+
+    return {
+        "metrics": result["metrics"],
+        "feedback": result["feedback"],
+        "drills": result["drills"],
+        "practice": result["practice"],
+        "video": video_base64
+    }
