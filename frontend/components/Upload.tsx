@@ -1,14 +1,13 @@
 "use client";
 
-import { UploadButton } from "@uploadthing/react";
-import type { OurFileRouter } from "../app/api/uploadthing/route";
+import { UploadDropzone } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/route";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-
 export default function Upload({ setResult, setContext }: any) {
   return (
-    <UploadButton<OurFileRouter, "videoUploader">
+    <UploadDropzone<OurFileRouter, "videoUploader">
       endpoint="videoUploader"
 
       onClientUploadComplete={async (res: any[]) => {

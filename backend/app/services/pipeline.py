@@ -11,7 +11,7 @@ PROCESSED_DIR = os.path.join(BASE_DIR, "processed")
 def run_pipeline(input_path, output_path):
     # Step 1: CV + metrics
     base_name = os.path.splitext(os.path.basename(input_path))[0]
-    output_name = f"processed_{base_name}.mp4"
+    output_name = output_path.split("/")[-1]
     output_path = os.path.join(PROCESSED_DIR, output_name)
 
     metrics = process_video_and_extract_metrics(input_path, output_path)
@@ -29,7 +29,7 @@ def run_pipeline(input_path, output_path):
     practice = generate_practice(issues)
 
     final_output = output_path.replace(".mp4", "_final.mp4")
-    
+
     subprocess.run([
     "ffmpeg",
     "-i", output_path,

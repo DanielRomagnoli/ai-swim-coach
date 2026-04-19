@@ -19,7 +19,7 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(chat.router)
 
-app.mount("/processed", StaticFiles(directory="processed"), name="processed")
+app.mount("/processed", StaticFiles(directory="/tmp"), name="processed")
 
 @app.get("/")
 def root():

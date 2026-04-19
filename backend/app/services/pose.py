@@ -67,8 +67,8 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
             frame_count += 1
 
             # ↓↓↓ skip frames (HUGE performance gain)
-            if frame_count % 3 != 0:
-                continue
+            # if frame_count % 3 != 0:
+            #     continue
 
             # ↓↓↓ resize frame
             frame = cv2.resize(frame, (target_width, target_height))
