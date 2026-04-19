@@ -1,7 +1,9 @@
 from app.services.pose import process_video_and_extract_metrics
 from app.services.coach import analyze_metrics, generate_feedback, suggest_drills, generate_practice
+
 import os
 import subprocess
+import uuid
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -9,34 +11,51 @@ PROCESSED_DIR = os.path.join(BASE_DIR, "processed")
 
 
 def run_pipeline(input_path, output_path):
-    # Step 1: CV + metrics
-    base_name = os.path.splitext(os.path.basename(input_path))[0]
-    output_name = output_path.split("/")[-1]
 
-    metrics = process_video_and_extract_metrics(input_path, output_path)
+    # 🔥 STEP 1: Downscale + reduce FPS (FAST)
+    temp_small_path = f"/tmp/small_{uuid.uuid4()}.mp4"
 
-    # Step 2: analyze issues
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", input_path,
+        "-vf", "scale=320:-1,fps=30",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        temp_small_path
+    ], check=True)
+
+    # Use smaller video for ALL processing
+    processed_input = temp_small_path
+
+
+    # 🔥 STEP 2: Run CV + metrics (this should also write video)
+    metrics = process_video_and_extract_metrics(processed_input, output_path)
+
+
+    # 🔥 STEP 3: Analysis
     issues = analyze_metrics(metrics)
-
-    # Step 3: generate feedback
     feedback = generate_feedback(issues)
-
-    # Step 4: drills
     drills = suggest_drills(issues)
-
-    # Step 5: practice
     practice = generate_practice(issues)
 
+
+    # 🔥 STEP 4: FINAL FAST ENCODE (ONLY ONCE)
     final_output = output_path.replace(".mp4", "_final.mp4")
 
     subprocess.run([
-    "ffmpeg",
-    "-i", output_path,
-    "-vcodec", "libx264",
-    "-acodec", "aac",
-    final_output
-    ])
+        "ffmpeg",
+        "-y",
+        "-i", output_path,
+        "-c:v", "libx264",
+        "-preset", "ultrafast",       # 🔥 SPEED
+        "-crf", "28",                 # slight compression
+        "-movflags", "+faststart",   # 🔥 STREAMING FIX
+        final_output
+    ], check=True)
 
+
+    # 🔥 Return only FINAL video
     output_name = os.path.basename(final_output)
 
     return {
@@ -47,7 +66,3 @@ def run_pipeline(input_path, output_path):
         "practice": practice,
         "processed_video": output_name
     }
-
-
-
-
