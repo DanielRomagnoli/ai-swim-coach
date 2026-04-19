@@ -23,23 +23,17 @@ export default function Upload({ setResult, setContext }: any) {
           try {
             const videoUrl = res[0].url;
 
-            // 🔥 STEP 1: start processing
             const response = await fetch(`${API}/upload-url`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ url: videoUrl }),
             });
 
             const data = await response.json();
             const video_id = data.video_id;
 
-            if (!video_id) {
-              throw new Error("No video_id returned");
-            }
+            if (!video_id) throw new Error("No video_id returned");
 
-            // 🔥 STEP 2: poll for result
             const interval = setInterval(async () => {
               const res = await fetch(`${API}/status/${video_id}`);
               const statusData = await res.json();
@@ -60,13 +54,13 @@ export default function Upload({ setResult, setContext }: any) {
                 setContext(statusData.metrics);
               }
 
-              if (statusData.error) {
+              if (statusData.status === "error") {
                 clearInterval(interval);
                 console.error(statusData.error);
                 alert("Processing failed");
               }
 
-            }, 2000); // poll every 2s
+            }, 2000);
 
           } catch (err) {
             console.error(err);
