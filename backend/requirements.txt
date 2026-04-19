@@ -26,7 +26,7 @@ ml_dtypes==0.5.4
 numpy==2.4.4
 openai==2.32.0
 opencv-contrib-python==4.13.0.92
-opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
 opt_einsum==3.4.0
 packaging==26.1
 pillow==12.2.0
