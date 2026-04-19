@@ -16,14 +16,14 @@ def run_pipeline(input_path, output_path):
     temp_small_path = f"/tmp/small_{uuid.uuid4()}.mp4"
 
     subprocess.run([
-        "ffmpeg",
-        "-y",
-        "-i", input_path,
-        "-vf", "scale=320:trunc(ow/a/2)*2,fps=30,format=yuv420p"
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-pix_fmt", "yuv420p",
-        temp_small_path
+    "ffmpeg",
+    "-y",
+    "-i", input_path,
+    "-vf", "scale=320:trunc(ow/a/2)*2,fps=30,format=yuv420p",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-pix_fmt", "yuv420p",
+    temp_small_path
     ], check=True)
 
     # Use smaller video for ALL processing
