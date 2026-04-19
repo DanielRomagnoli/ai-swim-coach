@@ -42,6 +42,13 @@ Cooldown:
 
 Coaching Notes:
 - ...
+
+  
+    Format respones:
+    - Use short sections
+    - Use bullet points
+    - Aboid excessive headings
+    - Keep it clean and readable
 """
 
     response = client.chat.completions.create(

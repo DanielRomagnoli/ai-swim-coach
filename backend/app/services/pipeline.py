@@ -38,7 +38,7 @@ def run_pipeline(input_path, output_path):
     issues = analyze_metrics(metrics)
     feedback = generate_feedback(issues)
     drills = suggest_drills(issues)
-    practice = generate_practice(issues)
+    practice = generate_practice(issues, metrics, feedback)
 
 
     # 🔥 STEP 4: FINAL FAST ENCODE (ONLY ONCE)
