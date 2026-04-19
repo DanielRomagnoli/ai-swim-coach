@@ -6,7 +6,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 export default function Upload({ setContext, setResult }: any) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-
+  console.log("API URL:", API);
   const handleUpload = async () => {
     if (!file) return;
 
