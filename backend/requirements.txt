@@ -29,7 +29,7 @@ opencv-python-headless==4.9.0.80
 opt_einsum==3.4.0
 packaging==26.1
 pillow==12.2.0
-protobuf==4.25.9
+protobuf==3.20.3
 pycparser==3.0
 pydantic==2.13.2
 pydantic_core==2.46.2
