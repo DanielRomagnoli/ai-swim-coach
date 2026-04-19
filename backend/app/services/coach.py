@@ -1,145 +1,58 @@
-from openai import OpenAI
 import os
+import json
+from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# 🔥 1. Analyze metrics → issues
-def analyze_metrics(metrics):
-
+def generate_full_analysis(metrics: dict):
     prompt = f"""
 You are an elite swim coach.
 
-Here are the swimmer's metrics extracted from video:
+A swimmer's stroke metrics are below:
+{json.dumps(metrics, indent=2)}
 
-{metrics}
+Your job is to analyze the swimmer and return a structured response.
 
-Your task:
-- Identify the top 3–5 technique issues
-- Be specific and technical (but clear)
-- Focus on the biggest performance limitations
+IMPORTANT:
+- Be specific and actionable
+- Sound like a real coach (not robotic)
+- Keep feedback concise but high quality
 
-Return as a bullet list.
+Return STRICT JSON in this format:
+
+{{
+  "issues": [
+    "short label of issue",
+    "short label of issue"
+  ],
+  "feedback": "clear paragraph explaining what they are doing wrong and how to fix it",
+  "drills": [
+    "specific drill with explanation",
+    "specific drill with explanation"
+  ],
+  "practice": "a short custom practice plan tailored to fix these issues"
+}}
 """
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.4
-    )
-
-    return response.choices[0].message.content
-
-
-# 🔥 2. Generate feedback from issues
-def generate_feedback(issues):
-
-    prompt = f"""
-You are an elite swim coach giving feedback to an athlete.
-
-Here are the identified issues:
-
-{issues}
-
-Your task:
-- Explain each issue simply
-- Explain WHY it matters for performance
-- Give 1 quick correction tip per issue
-
-Keep it concise, clear, and encouraging.
-
-Format as bullet points.
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.6
-    )
-
-    return response.choices[0].message.content
-
-
-# 🔥 3. Suggest drills based on issues
-def suggest_drills(issues):
-
-    prompt = f"""
-You are an elite swim coach.
-
-Here are the swimmer’s issues:
-
-{issues}
-
-Your task:
-- Suggest 3–5 drills to fix these issues
-- For each drill:
-    - Name
-    - Short description
-    - What it improves
-
-Keep it concise and practical.
-
-Format:
-- Drill Name: ...
-  Description: ...
-  Focus: ...
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
+        model="gpt-4.1-mini",  # fast + cheap
+        messages=[
+            {"role": "system", "content": "You are a professional swim coach."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.7
     )
 
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
 
-
-# 🔥 4. Generate FULL custom practice
-def generate_practice(issues, metrics, feedback):
-
-    prompt = f"""
-You are an elite swim coach designing a practice.
-
-Swimmer analysis:
-
-ISSUES:
-{issues}
-
-METRICS:
-{metrics}
-
-FEEDBACK:
-{feedback}
-
-Your task:
-Create a 30–45 minute swim practice tailored to fix these issues.
-
-Requirements:
-- Structured: Warmup, Main Set, Cooldown
-- Include specific distances and drills
-- Each drill must connect to an issue
-- Keep it realistic for a swimmer
-- Be concise but high-quality
-
-Format:
-
-Warmup:
-- ...
-
-Main Set:
-- ...
-
-Cooldown:
-- ...
-
-Coaching Notes:
-- ...
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-
-    return response.choices[0].message.content
+    try:
+        return json.loads(content)
+    except:
+        print("❌ Failed to parse AI response:", content)
+        return {
+            "issues": ["Error parsing AI response"],
+            "feedback": content,
+            "drills": [],
+            "practice": ""
+        }

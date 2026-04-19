@@ -1,5 +1,5 @@
 from app.services.pose import process_video_and_extract_metrics
-from app.services.coach import analyze_metrics, generate_feedback, suggest_drills, generate_practice
+from app.services.coach import generate_full_analysis
 
 import os
 import subprocess
@@ -34,11 +34,12 @@ def run_pipeline(input_path, output_path):
     metrics = process_video_and_extract_metrics(processed_input, output_path)
 
 
-    # 🔥 STEP 3: Analysis
-    issues = analyze_metrics(metrics)
-    feedback = generate_feedback(issues)
-    drills = suggest_drills(issues)
-    practice = generate_practice(issues, metrics, feedback)
+    analysis = generate_full_analysis(metrics)
+
+    issues = analysis["issues"]
+    feedback = analysis["feedback"]
+    drills = analysis["drills"]
+    practice = analysis["practice"]
 
 
     # 🔥 STEP 4: FINAL FAST ENCODE (ONLY ONCE)
