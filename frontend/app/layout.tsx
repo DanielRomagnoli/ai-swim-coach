@@ -1,4 +1,5 @@
 import "./globals.css";
+import "@uploadthing/react/styles.css";
 
 export const metadata = {
   title: "AI Swim Coach",
