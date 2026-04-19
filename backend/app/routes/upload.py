@@ -19,7 +19,9 @@ async def upload_from_url(data: dict):
     # paths
     input_path = f"/tmp/{uuid.uuid4()}.mp4"
     video_id = str(uuid.uuid4())
-    output_path = f"/opt/render/project/src/backend/processed/{video_id}.mp4"
+
+    base_path = f"/opt/render/project/src/backend/processed/{video_id}.mp4"
+    final_path = f"/opt/render/project/src/backend/processed/{video_id}_final.mp4"
 
     # download video
     r = requests.get(video_url)
@@ -27,17 +29,17 @@ async def upload_from_url(data: dict):
         f.write(r.content)
 
     # run pipeline
-    result = run_pipeline(input_path, output_path)
+    result = run_pipeline(input_path, base_path)
 
     # 🔥 ensure file exists
-    if not os.path.exists(output_path):
+    if not os.path.exists(final_path):
         raise RuntimeError("Processed video not created")
     
-    if os.path.getsize(output_path) < 100000:  # <100KB = broken
+    if os.path.getsize(final_path) < 100000:  # <100KB = broken
         raise RuntimeError("Video corrupted or empty")
 
     # store for retrieval
-    VIDEO_STORE[video_id] = output_path
+    VIDEO_STORE[video_id] = final_path
 
     # return JSON + video URL
     return {
