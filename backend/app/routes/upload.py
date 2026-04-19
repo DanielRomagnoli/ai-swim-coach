@@ -30,7 +30,7 @@ async def upload_video(file: UploadFile = File(...)):
 
 import requests
 
-@app.post("/upload-url")
+@router.post("/upload-url")
 async def upload_from_url(data: dict):
     import uuid
 
