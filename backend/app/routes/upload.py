@@ -1,17 +1,29 @@
 from fastapi import APIRouter, UploadFile, File
 import os
+import uuid
+from app.services.pose import process_video_and_extract_metrics
+from app.services.pipeline import run_pipeline
 
 router = APIRouter()
 
-UPLOAD_DIR = "temp"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "temp")
+PROCESSED_DIR = os.path.join(BASE_DIR, "processed")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 @router.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    unique_name = f"{uuid.uuid4()}_{file.filename}"
+    input_path = os.path.join(UPLOAD_DIR, unique_name)
 
-    with open(file_path, "wb") as f:
+    with open(input_path, "wb") as f:
         f.write(await file.read())
 
-    return {"filename": file.filename}
+    output_name = f"processed_{unique_name}"
+    output_path = os.path.join(PROCESSED_DIR, output_name)
+
+    result = run_pipeline(input_path, output_path)
+
+    return result

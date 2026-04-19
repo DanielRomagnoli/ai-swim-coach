@@ -1,65 +1,161 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Upload from "../components/Upload";
+import Chat from "../components/Chat";
+
+import {
+  Activity,
+  Gauge,
+  RefreshCw,
+  Waves,
+  AlignVerticalJustifyCenter,
+  Video,
+  Brain,
+} from "lucide-react";
+
+
+const metricIcons: any = {
+  stroke_rate: <Gauge size={18} />,
+  symmetry: <RefreshCw size={18} />,
+  alternation: <Activity size={18} />,
+  hip: <Waves size={18} />,
+  head: <AlignVerticalJustifyCenter size={18} />,
+  stroke_type: <Activity size={18} />,
+};
+
+const metricDescriptions: any = {
+  stroke_rate: "Strokes per minute — tempo",
+  symmetry: "Left vs right stroke balance",
+  alternation: "Timing consistency",
+  hip: "Hip position (higher = better)",
+  head: "Head alignment (stable = good)",
+  stroke_type: "Detected stroke style",
+};
 
 export default function Home() {
+  const [context, setContext] = useState<any>(null);
+  const [result, setResult] = useState<any>(null);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen p-6 max-w-7xl mx-auto">
+
+      {/* Header */}
+      <h1 className="text-3xl font-bold mb-6">
+        Laurier AI Assistant Coach
+      </h1>
+
+      {/* Chat */}
+      <div className="bg-white rounded-xl shadow p-4 mb-6">
+        <Chat context={context} />
+      </div>
+
+      {/* Main Layout */}
+      <div className="grid grid-cols-2 gap-6">
+
+        {/* LEFT: Upload + Video */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <Upload setContext={setContext} setResult={setResult} />
+
+          {result && (
+            <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Video size={18} />
+              <h2 className="font-semibold">Processed Video</h2>
+            </div>
+
+            <video
+              className="rounded-xl w-full border shadow-sm"
+              controls
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <source
+                src={`http://127.0.0.1:8000/processed/${result.processed_video}`}
+              />
+            </video>
+          </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* RIGHT: Analysis */}
+        <div className="bg-white rounded-xl shadow p-4">
+
+          {!result && (
+            <p className="text-gray-500">
+              Upload a video to see analysis
+            </p>
+          )}
+
+          {result && (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <Brain size={18} />
+                <h2 className="text-xl font-semibold">AI Analysis</h2>
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+              {Object.entries(result.metrics).map(([key, value]: any) => (
+                <div
+                  key={key}
+                  className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition"
+                >
+                  <div className="flex items-center gap-2 mb-2 text-gray-600">
+                    {metricIcons[key]}
+                    <p className="text-sm capitalize">{key.replace("_", " ")}</p>
+                  </div>
+
+                  <p className="text-2xl font-bold">
+                    {typeof value === "number" ? value.toFixed(2) : value}
+                  </p>
+
+                  <p className="text-xs text-gray-400 mt-1">
+                    {metricDescriptions[key]}
+                  </p>
+                </div>
+              ))}
+            </div>
+              {/* Feedback */}
+              <h3 className="font-semibold mt-4">Feedback</h3>
+              {result.feedback.map((f: any, i: number) => (
+                <div
+                  key={i}
+                  className="bg-blue-50 border border-blue-100 p-4 rounded-xl mt-3 shadow-sm"
+                >
+                  <p className="font-semibold text-blue-800">{f.issue}</p>
+                  <p className="text-sm mt-1">{f.why}</p>
+                  <p className="text-sm italic text-blue-600 mt-1">
+                    {f.fix}
+                  </p>
+                </div>
+              ))}
+
+              {/* Drills */}
+              <h3 className="font-semibold mt-4">Drills</h3>
+              <ul className="mt-2 space-y-2">
+                {result.drills.map((d: string, i: number) => (
+                  <li
+                    key={i}
+                    className="bg-gray-50 p-3 rounded-lg border text-sm"
+                  >
+                    {d}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Practice */}
+              <h3 className="font-semibold mt-4">Practice</h3>
+              <div className="bg-gray-50 p-4 rounded-xl border text-sm mt-2 space-y-1">
+                {Object.entries(result.practice).map(([k, v]: any) => (
+                  <p key={k}>
+                    <b className="capitalize">{k}:</b>{" "}
+                    {Array.isArray(v) ? v.join(", ") : v}
+                  </p>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
