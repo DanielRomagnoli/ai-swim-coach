@@ -27,3 +27,26 @@ async def upload_video(file: UploadFile = File(...)):
     result = run_pipeline(input_path, output_path)
 
     return result
+
+import requests
+
+@app.post("/upload-url")
+async def upload_from_url(data: dict):
+    import uuid
+
+    video_url = data["url"]
+
+    input_path = f"/tmp/{uuid.uuid4()}.mp4"
+    output_path = f"/tmp/processed_{uuid.uuid4()}.mp4"
+
+    # 🔥 download video
+    r = requests.get(video_url)
+    with open(input_path, "wb") as f:
+        f.write(r.content)
+
+    result = run_pipeline(input_path, output_path)
+
+    return {
+        **result,
+        "processed_video": output_path.split("/")[-1]
+    }

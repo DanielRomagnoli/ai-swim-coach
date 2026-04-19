@@ -1,72 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { UploadButton } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/route";
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-export default function Upload({ setContext, setResult }: any) {
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setLoading(true);
-    console.log("File size (MB):", file.size / 1024 / 1024);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch(`${API}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      // 🔥 FORMAT DATA FOR YOUR UI
-      const formatted = {
-        ...data,
-        feedback: [
-          {
-            issue: "Technique Analysis",
-            why: data.feedback,
-            fix: "Follow suggested drills below",
-          },
-        ],
-        drills: Array.isArray(data.drills)
-          ? data.drills
-          : data.drills.split("\n"),
-        practice:
-          typeof data.practice === "string"
-            ? { plan: data.practice }
-            : data.practice,
-      };
-
-      setResult(formatted);
-      setContext(data.metrics); // for chat
-    } catch (err) {
-      console.error(err);
-    }
-
-    setLoading(false);
-  };
-
+export default function Upload({ setResult, setContext }: any) {
   return (
     <div>
-      <input
-        type="file"
-        accept="video/*"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      <UploadButton<OurFileRouter, "videoUploader">
+        endpoint="videoUploader"
+        onClientUploadComplete={async (res) => {
+          console.log("Uploaded:", res);
+
+          const videoUrl = res[0].url;
+
+          const response = await fetch(`${API}/upload-url`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: videoUrl }),
+          });
+
+          const data = await response.json();
+
+          setResult(data);
+          setContext(data.metrics);
+        }}
+        onUploadError={(error: Error) => {
+          alert(`Upload failed: ${error.message}`);
+        }}
       />
-
-      <button
-        onClick={handleUpload}
-        className="bg-purple-600 text-white px-4 py-2 rounded mt-2"
-      >
-        Upload
-      </button>
-
-      {loading && <p className="mt-2">Processing...</p>}
     </div>
   );
 }
