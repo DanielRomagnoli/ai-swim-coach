@@ -8,12 +8,25 @@ from app.services.pipeline import run_pipeline
 
 router = APIRouter()
 
-VIDEO_STORE = {}
-RESULT_STORE = {}
-
 BASE_DIR = "/opt/render/project/src/backend/processed"
 os.makedirs(BASE_DIR, exist_ok=True)
 
+import json
+
+STATUS_DIR = "/tmp/status"
+os.makedirs(STATUS_DIR, exist_ok=True)
+
+def save_status(video_id, data):
+    with open(f"{STATUS_DIR}/{video_id}.json", "w") as f:
+        json.dump(data, f)
+
+def load_status(video_id):
+    path = f"{STATUS_DIR}/{video_id}.json"
+    if not os.path.exists(path):
+        return {"status": "not_found"}
+    with open(path) as f:
+        return json.load(f)
+    
 
 def process_video(video_id, input_path, base_path):
     try:
@@ -27,22 +40,18 @@ def process_video(video_id, input_path, base_path):
         if os.path.getsize(final_path) < 100000:
             raise RuntimeError("Video corrupted")
 
-        VIDEO_STORE[video_id] = final_path
-        RESULT_STORE[video_id] = {
-            "status": "done",
-            "metrics": result["metrics"],
-            "feedback": result["feedback"],
-            "drills": result["drills"],
-            "practice": result["practice"],
-            "video_url": f"/video/{video_id}"
-        }
+        
+        save_status(video_id, {
+    "status": "done",
+    "metrics": result["metrics"],
+    "feedback": result["feedback"],
+    "drills": result["drills"],
+    "practice": result["practice"],
+    "video_url": f"/video/{video_id}"
+})
 
     except Exception as e:
         print("PIPELINE ERROR:", e)
-        RESULT_STORE[video_id] = {
-            "status": "error",
-            "error": str(e)
-        }
 
 
 @router.post("/upload-url")
@@ -60,7 +69,7 @@ async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
         f.write(r.content)
 
     # 🔥 run in background (FAST RESPONSE)
-    RESULT_STORE[video_id] = {"status": "processing"}
+    save_status(video_id, {"status": "processing"})
     background_tasks.add_task(process_video, video_id, input_path, base_path)
 
     return {
@@ -71,14 +80,14 @@ async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
 
 @router.get("/status/{video_id}")
 def get_status(video_id: str):
-    return RESULT_STORE.get(video_id, {"status": "not_found"})
+    return load_status(video_id)
 
 
 @router.get("/video/{video_id}")
 def get_video(video_id: str):
-    path = VIDEO_STORE.get(video_id)
+    path = f"{BASE_DIR}/{video_id}_final.mp4"
 
-    if not path or not os.path.exists(path):
+    if not os.path.exists(path):
         return {"error": "Video not found"}
 
     return FileResponse(
