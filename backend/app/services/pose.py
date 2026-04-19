@@ -121,6 +121,7 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
 
     cap.release()
     out.release()
+    cv2.destroyAllWindows()
 
     # ---------- METRICS ----------
 

@@ -4,6 +4,8 @@ import uuid
 from app.services.pose import process_video_and_extract_metrics
 from app.services.pipeline import run_pipeline
 from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
+import io
 
 router = APIRouter()
 
@@ -47,8 +49,10 @@ async def upload_from_url(data: dict):
 
     result = run_pipeline(input_path, output_path)
 
-    return FileResponse(
-    output_path,
-    media_type="video/mp4",
-    filename="processed.mp4"
+    with open(output_path, "rb") as f:
+        video_bytes = f.read()
+
+    return StreamingResponse(
+        io.BytesIO(video_bytes),
+        media_type="video/mp4"
     )
