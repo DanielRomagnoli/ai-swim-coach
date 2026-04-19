@@ -1,5 +1,5 @@
 from app.services.pose import process_video_and_extract_metrics
-from app.services.coach import generate_full_analysis
+from app.services.coach import full_analysis
 
 import os
 import subprocess
