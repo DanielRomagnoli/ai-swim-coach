@@ -12,7 +12,6 @@ def run_pipeline(input_path, output_path):
     # Step 1: CV + metrics
     base_name = os.path.splitext(os.path.basename(input_path))[0]
     output_name = output_path.split("/")[-1]
-    output_path = os.path.join(PROCESSED_DIR, output_name)
 
     metrics = process_video_and_extract_metrics(input_path, output_path)
 
