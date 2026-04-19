@@ -1,58 +1,99 @@
 import os
-import json
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def generate_full_analysis(metrics: dict):
+# ------------------------
+# MAIN AI CALL (ALL-IN-ONE)
+# ------------------------
+def analyze_all(metrics: dict):
+    """
+    Takes metrics and returns:
+    - issues
+    - feedback
+    - drills
+    - practice
+    """
+
     prompt = f"""
 You are an elite swim coach.
 
-A swimmer's stroke metrics are below:
-{json.dumps(metrics, indent=2)}
+A swimmer's technique metrics are provided below.
 
-Your job is to analyze the swimmer and return a structured response.
+Your job:
+1. Identify key issues
+2. Give clear coaching feedback
+3. Suggest drills to fix each issue
+4. Generate a 4–5km swim practice tailored to these issues
 
-IMPORTANT:
-- Be specific and actionable
-- Sound like a real coach (not robotic)
-- Keep feedback concise but high quality
+Keep everything structured and concise.
 
-Return STRICT JSON in this format:
+METRICS:
+{metrics}
 
-{{
-  "issues": [
-    "short label of issue",
-    "short label of issue"
-  ],
-  "feedback": "clear paragraph explaining what they are doing wrong and how to fix it",
-  "drills": [
-    "specific drill with explanation",
-    "specific drill with explanation"
-  ],
-  "practice": "a short custom practice plan tailored to fix these issues"
-}}
+Return JSON with keys:
+issues (list of strings)
+feedback (list of strings)
+drills (list of strings)
+practice (list of strings)
 """
 
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",  # fast + cheap
+        model="gpt-4o-mini",  # fast + cheap
         messages=[
             {"role": "system", "content": "You are a professional swim coach."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7
+        temperature=0.4
     )
 
-    content = response.choices[0].message.content
+    text = response.choices[0].message.content
 
+    # 🔥 VERY IMPORTANT: safely parse JSON
     try:
-        return json.loads(content)
+        import json
+        result = json.loads(text)
     except:
-        print("❌ Failed to parse AI response:", content)
-        return {
-            "issues": ["Error parsing AI response"],
-            "feedback": content,
+        # fallback if model doesn't return perfect JSON
+        result = {
+            "issues": ["Could not parse issues"],
+            "feedback": [text],
             "drills": [],
-            "practice": ""
+            "practice": []
         }
+
+    return result
+
+
+# ------------------------
+# WRAPPER FUNCTIONS (USED BY PIPELINE)
+# ------------------------
+
+def analyze_metrics(metrics):
+    return analyze_all(metrics)["issues"]
+
+
+def generate_feedback(issues, metrics=None):
+    # optional metrics for better context
+    return analyze_all(metrics or {"issues": issues})["feedback"]
+
+
+def suggest_drills(issues, metrics=None):
+    return analyze_all(metrics or {"issues": issues})["drills"]
+
+
+def generate_practice(issues, metrics=None):
+    return analyze_all(metrics or {"issues": issues})["practice"]
+
+
+# ------------------------
+# 🔥 BEST PRACTICE (USE THIS IN PIPELINE)
+# ------------------------
+
+def full_analysis(metrics):
+    """
+    USE THIS instead of calling 4 separate functions.
+    Much faster (1 API call instead of 4)
+    """
+    return analyze_all(metrics)

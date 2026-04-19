@@ -9,6 +9,60 @@ import uuid
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PROCESSED_DIR = os.path.join(BASE_DIR, "processed")
 
+def process_video_only(input_path, output_path):
+    import subprocess, uuid
+
+    temp_small = f"/tmp/small_{uuid.uuid4()}.mp4"
+
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", input_path,
+        "-vf", "scale=320:-1,fps=30",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-movflags", "+faststart",
+        temp_small
+    ], check=True)
+
+    # 🔥 THIS already gives metrics
+    metrics = process_video_and_extract_metrics(temp_small, output_path)
+
+    final_output = output_path.replace(".mp4", "_final.mp4")
+
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", output_path,
+        "-vcodec", "libx264",
+        "-preset", "ultrafast",
+        "-movflags", "+faststart",
+        final_output
+    ], check=True)
+
+    return metrics
+
+
+def run_ai_only(metrics):
+    from app.services.coach import (
+        analyze_metrics,
+        generate_feedback,
+        suggest_drills,
+        generate_practice
+    )
+
+    issues = analyze_metrics(metrics)
+
+    feedback = generate_feedback(issues)
+    drills = suggest_drills(issues)
+    practice = generate_practice(issues)
+
+    return {
+        "metrics": metrics,
+        "feedback": feedback,
+        "drills": drills,
+        "practice": practice
+    }
 
 def run_pipeline(input_path, output_path):
 

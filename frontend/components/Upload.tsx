@@ -24,44 +24,45 @@ export default function Upload({ setResult, setContext }: any) {
             const videoUrl = res[0].url;
 
             const response = await fetch(`${API}/upload-url`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: videoUrl }),
-            });
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: videoUrl }),
+          });
 
-            const data = await response.json();
-            const video_id = data.video_id;
+          const data = await response.json();
 
-            if (!video_id) throw new Error("No video_id returned");
+          // 🔥 show video immediately
+          setResult({
+            processed_video: `${API}${data.video_url}`,
+          });
 
-            const interval = setInterval(async () => {
-              const res = await fetch(`${API}/status/${video_id}`);
-              const statusData = await res.json();
+          // 🔥 poll AI
+          const video_id = data.video_id;
 
-              console.log("Polling:", statusData);
+          const interval = setInterval(async () => {
+            const res = await fetch(`${API}/status/${video_id}`);
+            const status = await res.json();
 
-              if (statusData.status === "done") {
-                clearInterval(interval);
+            if (status.status === "done") {
+              clearInterval(interval);
 
-                setResult({
-                  processed_video: `${API}${statusData.video_url}`,
-                  metrics: statusData.metrics,
-                  feedback: statusData.feedback,
-                  drills: statusData.drills,
-                  practice: statusData.practice,
-                });
+              setResult((prev: any) => ({
+                ...prev,
+                metrics: status.metrics,
+                feedback: status.feedback,
+                drills: status.drills,
+                practice: status.practice,
+              }));
 
-                setContext(statusData.metrics);
-              }
+              setContext(status.metrics);
+            }
 
-              if (statusData.status === "error") {
-                clearInterval(interval);
-                console.error(statusData.error);
-                alert("Processing failed");
-              }
+            if (status.status === "error") {
+              clearInterval(interval);
+              alert("AI processing failed");
+            }
 
-            }, 2000);
-
+          }, 2000);
           } catch (err) {
             console.error(err);
             alert("Error processing video");
