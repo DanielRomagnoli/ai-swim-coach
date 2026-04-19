@@ -5,61 +5,68 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function Upload({ setContext, setResult }: any) {
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleUpload = async () => {
-    if (!file) {
-      setStatus("Please select a file");
-      return;
-    }
+    if (!file) return;
+
+    setLoading(true);
 
     const formData = new FormData();
     formData.append("file", file);
 
-    setStatus("Uploading...");
-
     try {
-      const res = await fetch('${API}/chat', {
+      const res = await fetch(`${API}/upload`, {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
 
-      setResult(data);
-      setContext(data.metrics);
+      // 🔥 FORMAT DATA FOR YOUR UI
+      const formatted = {
+        ...data,
+        feedback: [
+          {
+            issue: "Technique Analysis",
+            why: data.feedback,
+            fix: "Follow suggested drills below",
+          },
+        ],
+        drills: Array.isArray(data.drills)
+          ? data.drills
+          : data.drills.split("\n"),
+        practice:
+          typeof data.practice === "string"
+            ? { plan: data.practice }
+            : data.practice,
+      };
 
-      setStatus("Upload complete");
+      setResult(formatted);
+      setContext(data.metrics); // for chat
     } catch (err) {
       console.error(err);
-      setStatus("Upload failed");
     }
+
+    setLoading(false);
   };
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-2">
-        Upload Swim Video
-      </h2>
-
       <input
         type="file"
         accept="video/*"
-        onChange={(e) =>
-          setFile(e.target.files?.[0] || null)
-        }
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
       />
 
       <button
-        className="bg-purple-800 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
         onClick={handleUpload}
+        className="bg-purple-600 text-white px-4 py-2 rounded mt-2"
       >
         Upload
       </button>
 
-      <p className="text-sm mt-2 text-gray-500">
-        {status}
-      </p>
+      {loading && <p className="mt-2">Processing...</p>}
     </div>
   );
 }

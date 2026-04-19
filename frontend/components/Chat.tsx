@@ -20,7 +20,7 @@ export default function Chat({ context }: any) {
     setLoading(true);
 
     try {
-      const res = await fetch('${API}/chat', {
+      const res = await fetch(`${API}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,8 +30,10 @@ export default function Chat({ context }: any) {
           context: context || {},
         }),
       });
+      console.log("API URL:", API);
+      const text = await res.text();
+      const data = JSON.parse(text)
 
-      const data = await res.json();
 
       setMessages((prev) => [
         ...prev,
