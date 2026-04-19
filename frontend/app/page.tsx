@@ -70,7 +70,7 @@ export default function Home() {
               controls
             >
               <source
-                src={`${API}/processed/${result.processed_video}`}
+                src={result.processed_video}
               />
             </video>
           </div>

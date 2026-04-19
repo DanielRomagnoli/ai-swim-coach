@@ -98,7 +98,7 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
                     rh = lm[mp_pose.PoseLandmark.RIGHT_HIP.value]
 
                     # skip low visibility frames
-                    if rw.visibility < 0.5 or lw.visibility < 0.5:
+                    if rw.visibility < 0.5:
                         continue
 
                     # signals
@@ -136,7 +136,7 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
     right_peaks = detect_peaks(right_smooth, fps)
     left_peaks = detect_peaks(left_smooth, fps)
 
-    duration_seconds = len(right_smooth) / fps
+    duration_seconds = len(right_signal) / fps
 
     stroke_rate = len(right_peaks) / duration_seconds * 60 if duration_seconds > 0 else 0
 
