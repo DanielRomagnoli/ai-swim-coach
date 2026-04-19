@@ -19,9 +19,10 @@ def run_pipeline(input_path, output_path):
         "ffmpeg",
         "-y",
         "-i", input_path,
-        "-vf", "scale=320:-1,fps=30",
+        "-vf", "scale=320:trunc(ow/a/2)*2,fps=30,format=yuv420p"
         "-c:v", "libx264",
         "-preset", "ultrafast",
+        "-pix_fmt", "yuv420p",
         temp_small_path
     ], check=True)
 
