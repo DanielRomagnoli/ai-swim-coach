@@ -1,11 +1,9 @@
-import cv2
-import mediapipe as mp
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-mp_pose = mp.solutions.pose
-mp_drawing = mp.solutions.drawing_utils
+
 
 
 def smooth_signal(signal, window_size=25):
@@ -30,8 +28,12 @@ def detect_peaks(signal, fps):
 
 
 def process_video_and_extract_metrics(input_path: str, output_path: str):
+    import cv2
+    import mediapipe as mp
     cap = cv2.VideoCapture(input_path)
 
+    mp_pose = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
