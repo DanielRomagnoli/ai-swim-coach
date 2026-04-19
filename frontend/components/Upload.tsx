@@ -23,6 +23,7 @@ export default function Upload({ setResult, setContext }: any) {
           try {
             const videoUrl = res[0].url;
 
+            // 🔥 STEP 1: start processing
             const response = await fetch(`${API}/upload-url`, {
               method: "POST",
               headers: {
@@ -32,17 +33,40 @@ export default function Upload({ setResult, setContext }: any) {
             });
 
             const data = await response.json();
+            const video_id = data.video_id;
 
-            // 🔥 use backend video endpoint
-            setResult({
-              processed_video: `${API}${data.video_url}`,
-              metrics: data.metrics,
-              feedback: data.feedback,
-              drills: data.drills,
-              practice: data.practice,
-            });
+            if (!video_id) {
+              throw new Error("No video_id returned");
+            }
 
-            setContext(data.metrics);
+            // 🔥 STEP 2: poll for result
+            const interval = setInterval(async () => {
+              const res = await fetch(`${API}/status/${video_id}`);
+              const statusData = await res.json();
+
+              console.log("Polling:", statusData);
+
+              if (statusData.status === "done") {
+                clearInterval(interval);
+
+                setResult({
+                  processed_video: `${API}${statusData.video_url}`,
+                  metrics: statusData.metrics,
+                  feedback: statusData.feedback,
+                  drills: statusData.drills,
+                  practice: statusData.practice,
+                });
+
+                setContext(statusData.metrics);
+              }
+
+              if (statusData.error) {
+                clearInterval(interval);
+                console.error(statusData.error);
+                alert("Processing failed");
+              }
+
+            }, 2000); // poll every 2s
 
           } catch (err) {
             console.error(err);
