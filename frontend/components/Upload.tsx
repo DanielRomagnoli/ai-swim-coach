@@ -6,6 +6,49 @@ import type { OurFileRouter } from "@/app/api/uploadthing/route";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function Upload({ setResult, setContext }: any) {
+
+  const pollStatus = async (video_id: string) => {
+    let attempts = 0;
+
+    while (attempts < 40) {
+      attempts++;
+
+      try {
+        const res = await fetch(`${API}/status/${video_id}`);
+        const data = await res.json();
+
+        console.log("Polling:", data);
+
+        if (data.status === "done") {
+          setResult({
+            processed_video: `${API}${data.video_url}`,
+            metrics: data.metrics,
+            feedback: data.feedback,
+            drills: data.drills,
+            practice: data.practice,
+          });
+
+          setContext(data.metrics);
+          return;
+        }
+
+        if (data.status === "error") {
+          alert("Processing failed");
+          console.error(data.error);
+          return;
+        }
+
+        await new Promise((r) => setTimeout(r, 2000));
+
+      } catch (err) {
+        console.error(err);
+        return;
+      }
+    }
+
+    alert("Timed out");
+  };
+
   return (
     <div className="flex flex-col gap-4">
 
@@ -23,46 +66,34 @@ export default function Upload({ setResult, setContext }: any) {
           try {
             const videoUrl = res[0].url;
 
+            // 🔥 STEP 1: start processing
             const response = await fetch(`${API}/upload-url`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: videoUrl }),
-          });
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ url: videoUrl }),
+            });
 
-          const data = await response.json();
+            const data = await response.json();
+            const video_id = data.video_id;
 
-          // 🔥 show video immediately
-          setResult({
-            processed_video: `${API}${data.video_url}`,
-          });
+            if (!video_id) throw new Error("No video_id returned");
 
-          // 🔥 poll AI
-          const video_id = data.video_id;
+            // 🔥 show video instantly
+            setResult({
+              processed_video: `${API}${data.video_url}`,
+              metrics: data.metrics,
+              feedback: null,
+              drills: null,
+              practice: null,
+            });
 
-          const interval = setInterval(async () => {
-            const res = await fetch(`${API}/status/${video_id}`);
-            const status = await res.json();
+            setContext(data.metrics);
 
-            if (status.status === "done") {
-              clearInterval(interval);
+            // 🔥 STEP 2: poll AI
+            pollStatus(video_id);
 
-              setResult((prev: any) => ({
-                ...prev,
-                metrics: status.metrics,
-                feedback: status.feedback,
-                drills: status.drills,
-                practice: status.practice,
-              }));
-
-              setContext(status.metrics);
-            }
-
-            if (status.status === "error") {
-              clearInterval(interval);
-              alert("AI processing failed");
-            }
-
-          }, 2000);
           } catch (err) {
             console.error(err);
             alert("Error processing video");

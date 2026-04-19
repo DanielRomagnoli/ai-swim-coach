@@ -1,32 +1,32 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from fastapi.responses import FileResponse
 import uuid
 import requests
 import os
+import threading
 
-from app.services.pipeline import process_video_only
-from app.services.pipeline import run_ai_only
+from app.services.pipeline import process_video_only, run_ai_only
 
 router = APIRouter()
+
+VIDEO_STORE = {}
+STATUS_STORE = {}
 
 BASE_DIR = "/opt/render/project/src/backend/processed"
 os.makedirs(BASE_DIR, exist_ok=True)
 
-RESULT_STORE = {}
 
-# ------------------------
-# STEP 1: FAST RESPONSE
-# ------------------------
 @router.post("/upload-url")
-async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
+async def upload_from_url(data: dict):
     video_url = data["url"]
 
+    input_path = f"/tmp/{uuid.uuid4()}.mp4"
     video_id = str(uuid.uuid4())
-    input_path = f"/tmp/{video_id}.mp4"
+
     base_path = f"{BASE_DIR}/{video_id}.mp4"
     final_path = f"{BASE_DIR}/{video_id}_final.mp4"
 
-    # download
+    # download video
     r = requests.get(video_url)
     with open(input_path, "wb") as f:
         f.write(r.content)
@@ -37,71 +37,62 @@ async def upload_from_url(data: dict, background_tasks: BackgroundTasks):
     if not os.path.exists(final_path):
         raise RuntimeError("Video processing failed")
 
-    # 🔥 store initial state
-    RESULT_STORE[video_id] = {
-    "status": "processing_ai",
-    "video_url": f"/video/{video_id}",
-    "metrics": metrics   # 🔥 store it
-    }
-    # 🔥 STEP 2: run AI in background
-    import threading
+    VIDEO_STORE[video_id] = final_path
 
-    threading.Thread(
-        target=run_ai_background,
-        args=(video_id, metrics),
-        daemon=True
-    ).start()
-
-    return {
-        "video_id": video_id,
+    # initial status
+    STATUS_STORE[video_id] = {
+        "status": "processing_ai",
+        "metrics": metrics,
         "video_url": f"/video/{video_id}"
     }
 
+    # 🔥 STEP 2: run AI async (non-blocking)
+    def run_ai():
+        try:
+            print("Starting AI for", video_id)
 
-# ------------------------
-# BACKGROUND AI
-def run_ai_background(video_id, metrics):
-    try:
-        print("Starting AI for", video_id)
+            result = run_ai_only(metrics)
 
-        result = run_ai_only(metrics)
+            STATUS_STORE[video_id] = {
+                "status": "done",
+                "video_url": f"/video/{video_id}",
+                "metrics": result["metrics"],
+                "feedback": result["feedback"],
+                "drills": result["drills"],
+                "practice": result["practice"],
+            }
 
-        RESULT_STORE[video_id] = {
-            "status": "done",
-            "video_url": f"/video/{video_id}",
-            "metrics": result["metrics"],
-            "feedback": result["feedback"],
-            "drills": result["drills"],
-            "practice": result["practice"],
-        }
+            print("AI DONE", video_id)
 
-        print("AI DONE", video_id)
+        except Exception as e:
+            STATUS_STORE[video_id] = {
+                "status": "error",
+                "error": str(e)
+            }
 
-    except Exception as e:
-        print("AI ERROR:", str(e))
+    threading.Thread(target=run_ai).start()
 
-        RESULT_STORE[video_id] = {
-            "status": "error",
-            "error": str(e)
-        }
+    return {
+        "video_id": video_id,
+        "video_url": f"/video/{video_id}",
+        "metrics": metrics
+    }
 
-# ------------------------
-# STATUS ENDPOINT
-# ------------------------
+
 @router.get("/status/{video_id}")
 def get_status(video_id: str):
-    status = RESULT_STORE.get(video_id, {"status": "processing"})
-    print("STATUS CHECK:", video_id, status["status"])
-    return status
+    data = STATUS_STORE.get(video_id, {"status": "processing"})
 
-# ------------------------
-# VIDEO SERVE
-# ------------------------
+    print("STATUS CHECK:", video_id, data["status"])
+
+    return data
+
+
 @router.get("/video/{video_id}")
 def get_video(video_id: str):
-    path = f"{BASE_DIR}/{video_id}_final.mp4"
+    path = VIDEO_STORE.get(video_id)
 
-    if not os.path.exists(path):
+    if not path or not os.path.exists(path):
         return {"error": "Video not found"}
 
     return FileResponse(
