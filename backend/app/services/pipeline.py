@@ -1,12 +1,16 @@
 from app.services.pose import process_video_and_extract_metrics
+from app.services.coach import analyze_metrics, generate_feedback, suggest_drills, generate_practice
+
 import subprocess
 import uuid
 import os
 
 
-def process_video_only(input_path, output_path):
+def run_pipeline(input_path, output_path):
+
     temp_small = f"/tmp/small_{uuid.uuid4()}.mp4"
 
+    # 🔥 FAST VIDEO PROCESSING
     subprocess.run([
         "ffmpeg",
         "-y",
@@ -18,8 +22,12 @@ def process_video_only(input_path, output_path):
         temp_small
     ], check=True)
 
-    # CV + metrics
     metrics = process_video_and_extract_metrics(temp_small, output_path)
+
+    issues = analyze_metrics(metrics)
+    feedback = generate_feedback(issues)
+    drills = suggest_drills(issues)
+    practice = generate_practice(issues)
 
     final_output = output_path.replace(".mp4", "_final.mp4")
 
@@ -34,9 +42,10 @@ def process_video_only(input_path, output_path):
         final_output
     ], check=True)
 
-    return metrics
-
-
-def run_ai_only(metrics):
-    from app.services.coach import full_analysis
-    return full_analysis(metrics)
+    return {
+        "metrics": metrics,
+        "feedback": feedback,
+        "drills": drills,
+        "practice": practice,
+        "processed_video": os.path.basename(final_output)
+    }

@@ -1,38 +1,53 @@
-from openai import OpenAI
-import os
+def analyze_metrics(metrics):
+    issues = []
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    if metrics.get("stroke_rate", 0) < 40:
+        issues.append("Low stroke rate")
+
+    if metrics.get("symmetry_score", 1) < 0.8:
+        issues.append("Poor stroke symmetry")
+
+    if metrics.get("body_position", 0) < 0.7:
+        issues.append("Body position too low")
+
+    return issues
 
 
-def full_analysis(metrics):
-    prompt = f"""
-You are an elite swim coach.
+def generate_feedback(issues):
+    feedback = []
 
-Given these metrics:
-{metrics}
+    for issue in issues:
+        if issue == "Low stroke rate":
+            feedback.append("Increase tempo slightly while maintaining form")
 
-Return JSON with:
-- issues
-- feedback (clear coaching advice)
-- drills (specific drills)
-- practice (structured swim set)
-"""
+        if issue == "Poor stroke symmetry":
+            feedback.append("Focus on even left/right arm pull")
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-    )
+        if issue == "Body position too low":
+            feedback.append("Engage core and keep hips higher")
 
-    import json
+    return feedback
 
-    try:
-        content = response.choices[0].message.content
-        return json.loads(content)
-    except:
-        return {
-            "issues": ["Could not parse AI response"],
-            "feedback": content,
-            "drills": [],
-            "practice": []
-        }
+
+def suggest_drills(issues):
+    drills = []
+
+    if "Low stroke rate" in issues:
+        drills.append("Tempo trainer freestyle")
+
+    if "Poor stroke symmetry" in issues:
+        drills.append("Single arm freestyle")
+
+    if "Body position too low" in issues:
+        drills.append("Kick on side drill")
+
+    return drills
+
+
+def generate_practice(issues):
+    return [
+        "400 warm-up",
+        "6x50 drill (focus on technique)",
+        "8x100 moderate pace",
+        "200 cool down"
+    ]
