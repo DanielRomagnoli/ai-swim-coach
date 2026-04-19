@@ -10,7 +10,7 @@ router = APIRouter()
 
 # 🔥 simple in-memory store (fine for now)
 VIDEO_STORE = {}
-
+os.makedirs("/opt/render/project/src/backend/processed", exist_ok=True)
 
 @router.post("/upload-url")
 async def upload_from_url(data: dict):
@@ -19,7 +19,7 @@ async def upload_from_url(data: dict):
     # paths
     input_path = f"/tmp/{uuid.uuid4()}.mp4"
     video_id = str(uuid.uuid4())
-    output_path = f"/tmp/{video_id}.mp4"
+    output_path = f"/opt/render/project/src/backend/processed/{video_id}.mp4"
 
     # download video
     r = requests.get(video_url)
@@ -32,6 +32,9 @@ async def upload_from_url(data: dict):
     # 🔥 ensure file exists
     if not os.path.exists(output_path):
         raise RuntimeError("Processed video not created")
+    
+    if os.path.getsize(output_path) < 100000:  # <100KB = broken
+        raise RuntimeError("Video corrupted or empty")
 
     # store for retrieval
     VIDEO_STORE[video_id] = output_path
@@ -45,6 +48,7 @@ async def upload_from_url(data: dict):
         "video_url": f"/video/{video_id}"
     }
 
+from fastapi.responses import FileResponse
 
 @router.get("/video/{video_id}")
 def get_video(video_id: str):
@@ -53,4 +57,11 @@ def get_video(video_id: str):
     if not path or not os.path.exists(path):
         return {"error": "Video not found"}
 
-    return FileResponse(path, media_type="video/mp4")
+    return FileResponse(
+        path,
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": "inline",
+            "Accept-Ranges": "bytes"
+        }
+    )

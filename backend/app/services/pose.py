@@ -122,6 +122,8 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
     cap.release()
     out.release()
     cv2.destroyAllWindows()
+    import time
+    time.sleep(1)  # give filesystem time to flush
 
     # ---------- METRICS ----------
 

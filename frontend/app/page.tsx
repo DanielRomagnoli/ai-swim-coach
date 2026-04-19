@@ -65,11 +65,13 @@ export default function Home() {
               <h2 className="font-semibold">Processed Video</h2>
             </div>
 
-            <video
+          <video
             className="rounded-xl w-full border shadow-sm"
             controls
+            preload="auto"
+            playsInline
           >
-            <source src={result.processed_video} />
+            <source src={result.processed_video} type="video/mp4" />
           </video>
           </div>
           )}
