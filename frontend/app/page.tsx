@@ -66,13 +66,11 @@ export default function Home() {
             </div>
 
             <video
-              className="rounded-xl w-full border shadow-sm"
-              controls
-            >
-              <source
-                src={result.processed_video}
-              />
-            </video>
+            className="rounded-xl w-full border shadow-sm"
+            controls
+          >
+            <source src={result.processed_video} />
+          </video>
           </div>
           )}
         </div>

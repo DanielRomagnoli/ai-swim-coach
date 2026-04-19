@@ -4,8 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import chat
 from fastapi.staticfiles import StaticFiles
 
-
-
 app = FastAPI()
 
 app.add_middleware(

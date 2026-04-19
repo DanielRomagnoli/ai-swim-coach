@@ -21,47 +21,31 @@ export default function Upload({ setResult, setContext }: any) {
 
         onClientUploadComplete={async (res: any[]) => {
           try {
-            console.log("Upload complete:", res);
-
             const videoUrl = res[0].url;
 
-            // 🔥 Send video URL to backend for processing
             const response = await fetch(`${API}/upload-url`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ url: videoUrl }),
-          });
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ url: videoUrl }),
+            });
 
-          const data = await response.json();
+            const data = await response.json();
 
-          // 🔥 convert base64 → blob
-          const byteCharacters = atob(data.video);
-          const byteNumbers = new Array(byteCharacters.length);
+            // 🔥 use backend video endpoint
+            setResult({
+              processed_video: `${API}${data.video_url}`,
+              metrics: data.metrics,
+              feedback: data.feedback,
+              drills: data.drills,
+              practice: data.practice,
+            });
 
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
+            setContext(data.metrics);
 
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: "video/mp4" });
-
-          const videoUrlBlob = URL.createObjectURL(blob);
-
-          // 🔥 set full result
-          setResult({
-            processed_video: videoUrlBlob,
-            metrics: data.metrics,
-            feedback: data.feedback,
-            drills: data.drills,
-            practice: data.practice,
-          });
-
-          setContext(data.metrics);
-
-                    } catch (err) {
-            console.error("Processing error:", err);
+          } catch (err) {
+            console.error(err);
             alert("Error processing video");
           }
         }}

@@ -53,7 +53,7 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
 
     with mp_pose.Pose(
         static_image_mode=False,
-        model_complexity=0,  # lighter model
+        model_complexity=1,  # lighter model
         enable_segmentation=False,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5,
