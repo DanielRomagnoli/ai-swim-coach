@@ -1,4 +1,4 @@
-from app.services.pose import process_video_and_extract_metrics
+from app.services.pose import process_video_and_extract_metrics, normalize_metrics
 from app.services.coach import analyze_metrics, generate_feedback, suggest_drills, generate_practice
 
 import subprocess
@@ -23,6 +23,7 @@ def run_pipeline(input_path, output_path):
     ], check=True)
 
     metrics = process_video_and_extract_metrics(temp_small, output_path)
+    metrics = normalize_metrics(metrics)
 
     issues = analyze_metrics(metrics)
     feedback = generate_feedback(issues)

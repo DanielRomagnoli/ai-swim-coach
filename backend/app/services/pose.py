@@ -187,3 +187,15 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
         "head": float(head_lift_score),
         "stroke_type": stroke_type
     }
+
+def normalize_metrics(metrics):
+    def clamp(x):
+        return max(0, min(1, x))
+
+    metrics["symmetry_score"] = clamp(metrics.get("symmetry_score", 1))
+    metrics["alternation_score"] = clamp(metrics.get("alternation_score", 1))
+    metrics["stroke_consistency"] = clamp(metrics.get("stroke_consistency", 1))
+    metrics["body_position"] = clamp(metrics.get("body_position", 1))
+    metrics["head_position"] = clamp(metrics.get("head_position", 1))
+
+    return metrics
