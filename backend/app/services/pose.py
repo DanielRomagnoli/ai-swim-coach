@@ -9,8 +9,8 @@ def smooth_signal(signal, window_size=25):
 
 def detect_peaks(signal, fps):
     peaks = []
-    threshold = np.mean(signal) + 0.02
-    min_distance = int(fps * 0.6)
+    threshold = np.mean(signal) - 0.01
+    min_distance = int(fps * 0.4)
 
     for i in range(1, len(signal)-1):
         if (
@@ -192,10 +192,9 @@ def normalize_metrics(metrics):
     def clamp(x):
         return max(0, min(1, x))
 
-    metrics["symmetry_score"] = clamp(metrics.get("symmetry_score", 1))
-    metrics["alternation_score"] = clamp(metrics.get("alternation_score", 1))
-    metrics["stroke_consistency"] = clamp(metrics.get("stroke_consistency", 1))
-    metrics["body_position"] = clamp(metrics.get("body_position", 1))
-    metrics["head_position"] = clamp(metrics.get("head_position", 1))
+    metrics["symmetry"] = clamp(metrics.get("symmetry", 1))
+    metrics["alternation"] = clamp(metrics.get("alternation", 1))
+    metrics["hip"] = clamp(metrics.get("hip", 1))
+    metrics["head"] = clamp(metrics.get("head", 1))
 
     return metrics
