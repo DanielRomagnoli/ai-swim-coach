@@ -1,62 +1,73 @@
 def analyze_metrics(metrics):
     issues = []
 
-    stroke_rate = metrics.get("stroke_rate", 0)
-    symmetry = metrics.get("symmetry_score", 1)
-    body_pos = metrics.get("body_position", 1)
-    head_pos = metrics.get("head_position", 1)
-    consistency = metrics.get("stroke_consistency", 1)
+    sr = metrics.get("stroke_rate", 0)
+    sym = metrics.get("symmetry", 1)
+    alt = metrics.get("alternation", 1)
+    body = metrics.get("body_position", 1)
+    head = metrics.get("head_position", 1)
+    cons = metrics.get("consistency", 1)
 
-    if stroke_rate < 40:
+    if sr < 40:
         issues.append("Low stroke rate")
 
-    if stroke_rate > 65:
+    if sr > 70:
         issues.append("Stroke rate too high")
 
-    if symmetry < 0.8:
+    if sym < 0.85:
         issues.append("Poor stroke symmetry")
 
-    if body_pos < 0.7:
+    if alt < 0.85:
+        issues.append("Poor stroke timing")
+
+    if body < 0.75:
         issues.append("Poor body position")
 
-    if head_pos < 0.7:
-        issues.append("Head position too low")
+    if head < 0.75:
+        issues.append("Head position off")
 
-    if consistency < 0.75:
-        issues.append("Inconsistent stroke timing")
+    if cons < 0.75:
+        issues.append("Inconsistent stroke rhythm")
+
+    if not issues:
+        issues.append("Minor technique improvements")
 
     return issues
 
 
-# -------------------------
-# FEEDBACK
-# -------------------------
-
 def generate_feedback(issues):
     feedback_map = {
         "Low stroke rate": [
-            "Increase tempo slightly while maintaining technique",
-            "Focus on quicker hand recovery over the water"
+            "Increase tempo slightly",
+            "Speed up recovery phase"
         ],
         "Stroke rate too high": [
-            "Slow down and focus on distance per stroke",
-            "Emphasize a stronger pull phase"
+            "Slow down stroke",
+            "Focus on distance per stroke"
         ],
         "Poor stroke symmetry": [
-            "Ensure both arms are pulling evenly",
-            "Focus on balanced body rotation"
+            "Balance left and right pull",
+            "Focus on even rotation"
+        ],
+        "Poor stroke timing": [
+            "Work on alternating rhythm",
+            "Smooth out stroke transitions"
         ],
         "Poor body position": [
-            "Engage your core to keep hips high",
-            "Keep your body flat and streamlined"
+            "Keep hips higher",
+            "Engage core for alignment"
         ],
-        "Head position too low": [
-            "Lift your eyes slightly forward",
-            "Avoid excessive downward head tilt"
+        "Head position off": [
+            "Keep head neutral",
+            "Avoid lifting or dropping head"
         ],
-        "Inconsistent stroke timing": [
-            "Work on rhythm and stroke timing",
-            "Focus on smooth, continuous movement"
+        "Inconsistent stroke rhythm": [
+            "Maintain steady tempo",
+            "Focus on smooth cadence"
+        ],
+        "Minor technique improvements": [
+            "Good swim — refine technique",
+            "Focus on efficiency"
         ]
     }
 
@@ -67,121 +78,38 @@ def generate_feedback(issues):
     return feedback
 
 
-# -------------------------
-# DRILLS
-# -------------------------
-
 def suggest_drills(issues):
     drill_map = {
-        "Low stroke rate": [
-            "Tempo trainer freestyle",
-            "Fast arms drill"
-        ],
-        "Stroke rate too high": [
-            "Catch-up drill",
-            "Glide drill"
-        ],
-        "Poor stroke symmetry": [
-            "Single arm freestyle",
-            "3-3-3 drill"
-        ],
-        "Poor body position": [
-            "Kick on side",
-            "Superman glide"
-        ],
-        "Head position too low": [
-            "Head-up freestyle",
-            "Sight breathing drill"
-        ],
-        "Inconsistent stroke timing": [
-            "6-kick switch drill",
-            "Pause drill"
-        ]
+        "Low stroke rate": ["Fast arms drill"],
+        "Stroke rate too high": ["Catch-up drill"],
+        "Poor stroke symmetry": ["Single arm freestyle"],
+        "Poor stroke timing": ["6-kick switch drill"],
+        "Poor body position": ["Kick on side"],
+        "Head position off": ["Head-up freestyle"],
+        "Inconsistent stroke rhythm": ["Tempo trainer"],
     }
 
     drills = []
     for issue in issues:
         drills.extend(drill_map.get(issue, []))
 
-    return list(set(drills))  # remove duplicates
+    return list(set(drills))
 
-
-# -------------------------
-# PRACTICES (🔥 MAIN UPGRADE)
-# -------------------------
 
 def generate_practice(issues):
-
-    base_practices = [
-        [
-            "400 warm-up",
-            "4x50 drill (choice)",
-            "6x100 moderate pace",
-            "200 cool down"
-        ],
-        [
-            "300 warm-up",
-            "8x50 build",
-            "4x200 aerobic",
-            "100 easy"
-        ]
-    ]
-
-    issue_practices = []
+    practices = []
 
     if "Low stroke rate" in issues:
-        issue_practices.append([
-            "400 warm-up",
-            "6x50 fast arms",
-            "8x100 descending",
-            "200 cool down"
-        ])
-
-    if "Stroke rate too high" in issues:
-        issue_practices.append([
-            "300 warm-up",
-            "6x50 catch-up drill",
-            "6x100 focus DPS (distance per stroke)",
-            "200 easy"
-        ])
+        practices.append(["6x50 fast arms", "8x100 descend"])
 
     if "Poor stroke symmetry" in issues:
-        issue_practices.append([
-            "400 warm-up",
-            "8x50 single arm",
-            "6x100 alternating focus left/right",
-            "200 cool down"
-        ])
+        practices.append(["8x50 single arm", "6x100 alt focus"])
 
     if "Poor body position" in issues:
-        issue_practices.append([
-            "300 warm-up",
-            "6x50 kick on side",
-            "6x100 pull buoy focus body line",
-            "200 easy"
-        ])
+        practices.append(["6x50 kick on side", "6x100 pull"])
 
-    if "Head position too low" in issues:
-        issue_practices.append([
-            "300 warm-up",
-            "6x50 head-up freestyle",
-            "6x100 breathing control",
-            "200 cool down"
-        ])
+    # fallback
+    while len(practices) < 5:
+        practices.append(["400 swim", "4x100 moderate", "200 easy"])
 
-    if "Inconsistent stroke timing" in issues:
-        issue_practices.append([
-            "400 warm-up",
-            "6x50 6-kick switch",
-            "6x100 smooth rhythm focus",
-            "200 easy"
-        ])
-
-    # combine + ensure 5 practices
-    all_practices = issue_practices + base_practices
-
-    # 🔥 ensure always 5
-    while len(all_practices) < 5:
-        all_practices.append(base_practices[len(all_practices) % len(base_practices)])
-
-    return all_practices[:5]
+    return practices[:5]

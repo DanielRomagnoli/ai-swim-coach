@@ -1,14 +1,22 @@
-
 import os
 import numpy as np
 
 
-def smooth_signal(signal, window_size=25):
+# -------------------------
+# SMOOTHING
+# -------------------------
+def smooth_signal(signal, window_size=15):
+    if len(signal) < window_size:
+        return signal
     return np.convolve(signal, np.ones(window_size)/window_size, mode='valid')
 
 
+# -------------------------
+# PEAK DETECTION
+# -------------------------
 def detect_peaks(signal, fps):
     peaks = []
+
     threshold = np.mean(signal) - 0.01
     min_distance = int(fps * 0.4)
 
@@ -24,10 +32,12 @@ def detect_peaks(signal, fps):
     return peaks
 
 
+# -------------------------
+# MAIN PIPELINE
+# -------------------------
 def process_video_and_extract_metrics(input_path: str, output_path: str):
     import cv2
     import mediapipe as mp
-    import numpy as np
 
     cap = cv2.VideoCapture(input_path)
 
@@ -36,25 +46,20 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
 
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
 
-    # ↓↓↓ reduce resolution (HUGE memory win)
     target_width = 640
     target_height = 360
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(output_path, fourcc, fps, (target_width, target_height))
 
-    # only store minimal signals
     right_wrist_y = []
     left_wrist_y = []
     hip_diff = []
     head_diff = []
 
-    frame_count = 0
-
     with mp_pose.Pose(
         static_image_mode=False,
-        model_complexity=1,  # lighter model
-        enable_segmentation=False,
+        model_complexity=1,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5,
     ) as pose:
@@ -64,22 +69,14 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
             if not ret:
                 break
 
-            frame_count += 1
-
-            # ↓↓↓ skip frames (HUGE performance gain)
-            # if frame_count % 3 != 0:
-            #     continue
-
-            # ↓↓↓ resize frame
             frame = cv2.resize(frame, (target_width, target_height))
-
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
             results = pose.process(rgb)
 
             if results.pose_landmarks:
                 lm = results.pose_landmarks.landmark
 
-                # draw skeleton
                 mp_drawing.draw_landmarks(
                     frame,
                     results.pose_landmarks,
@@ -87,7 +84,6 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
                 )
 
                 try:
-                    nose = lm[mp_pose.PoseLandmark.NOSE.value]
                     rw = lm[mp_pose.PoseLandmark.RIGHT_WRIST.value]
                     lw = lm[mp_pose.PoseLandmark.LEFT_WRIST.value]
 
@@ -97,22 +93,20 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
                     lh = lm[mp_pose.PoseLandmark.LEFT_HIP.value]
                     rh = lm[mp_pose.PoseLandmark.RIGHT_HIP.value]
 
-                    # skip low visibility frames
-                    if rw.visibility < 0.5:
+                    nose = lm[mp_pose.PoseLandmark.NOSE.value]
+
+                    if rw.visibility < 0.5 or lw.visibility < 0.5:
                         continue
 
-                    # signals
                     right_wrist_y.append(rw.y)
                     left_wrist_y.append(lw.y)
 
-                    shoulder_y = (ls.y + rs.y) / 2
-                    torso_length = abs(ls.y - lh.y) + 1e-6
+                    shoulder = (ls.y + rs.y) / 2
+                    hip = (lh.y + rh.y) / 2
+                    torso = abs(ls.y - lh.y) + 1e-6
 
-                    head_y = nose.y
-                    hip_y = (lh.y + rh.y) / 2
-
-                    head_diff.append((head_y - shoulder_y) / torso_length)
-                    hip_diff.append((hip_y - shoulder_y) / torso_length)
+                    head_diff.append((nose.y - shoulder) / torso)
+                    hip_diff.append((hip - shoulder) / torso)
 
                 except:
                     continue
@@ -122,79 +116,68 @@ def process_video_and_extract_metrics(input_path: str, output_path: str):
     cap.release()
     out.release()
     cv2.destroyAllWindows()
-    import time
-    time.sleep(1)  # give filesystem time to flush
 
-    # ---------- METRICS ----------
-
-    if len(right_wrist_y) < 10:
+    if len(right_wrist_y) < 20:
         return {"error": "Not enough data"}
 
-    right_signal = np.array(right_wrist_y)
-    left_signal = np.array(left_wrist_y)
+    right = smooth_signal(np.array(right_wrist_y))
+    left = smooth_signal(np.array(left_wrist_y))
 
-    right_smooth = smooth_signal(right_signal)
-    left_smooth = smooth_signal(left_signal)
+    r_peaks = detect_peaks(right, fps)
+    l_peaks = detect_peaks(left, fps)
 
-    right_peaks = detect_peaks(right_smooth, fps)
-    left_peaks = detect_peaks(left_smooth, fps)
+    duration = len(right) / fps
 
-    duration_seconds = len(right_signal) / fps
+    # -------------------------
+    # STROKE RATE
+    # -------------------------
+    stroke_rate = (len(r_peaks) / duration) * 60 if duration > 0 else 0
+    stroke_rate = float(np.clip(stroke_rate, 20, 100))
 
-    stroke_rate = len(right_peaks) / duration_seconds * 60 if duration_seconds > 0 else 0
+    # -------------------------
+    # SYMMETRY (0–1)
+    # -------------------------
+    symmetry = 1.0
+    if len(r_peaks) > 1 and len(l_peaks) > 1:
+        r_int = np.diff(r_peaks)
+        l_int = np.diff(l_peaks)
 
-    right_intervals = np.diff(right_peaks) / fps if len(right_peaks) > 1 else []
-    left_intervals = np.diff(left_peaks) / fps if len(left_peaks) > 1 else []
+        n = min(len(r_int), len(l_int))
+        if n > 0:
+            ratios = [min(r_int[i], l_int[i]) / (max(r_int[i], l_int[i]) + 1e-6) for i in range(n)]
+            symmetry = float(np.mean(ratios))
 
-    # symmetry
-    symmetry_score = 0
-    if len(right_intervals) > 0 and len(left_intervals) > 0:
-        right_times = [(right_peaks[i] + right_peaks[i+1]) / 2 for i in range(len(right_peaks)-1)]
-        left_times = [(left_peaks[i] + left_peaks[i+1]) / 2 for i in range(len(left_peaks)-1)]
+    # -------------------------
+    # ALTERNATION (0–1)
+    # -------------------------
+    alternation = 1.0
+    if len(r_peaks) > 0 and len(l_peaks) > 0:
+        scores = []
+        for r in r_peaks:
+            closest = min(l_peaks, key=lambda x: abs(x - r))
+            diff = abs(r - closest) / fps
+            scores.append(np.exp(-diff))
+        alternation = float(np.mean(scores))
 
-        diffs = []
-        for rt, ri in zip(right_times, right_intervals):
-            idx = np.argmin([abs(rt - lt) for lt in left_times])
-            li = left_intervals[idx]
-            diffs.append(abs(ri - li) / ((ri + li) / 2 + 1e-6))
+    # -------------------------
+    # CONSISTENCY (0–1)
+    # -------------------------
+    consistency = 1.0
+    if len(r_peaks) > 2:
+        intervals = np.diff(r_peaks) / fps
+        consistency = float(np.exp(-np.std(intervals)))
 
-        symmetry_score = np.mean(diffs)
-
-    # alternation
-    alternation_score = 0
-    if len(left_peaks) > 0:
-        alternation_diffs = [
-            abs(r - min(left_peaks, key=lambda l: abs(l - r)))
-            for r in right_peaks
-        ]
-        alternation_score = np.mean(alternation_diffs) / fps
-
-    # stroke type
-    intervals = np.diff(right_peaks) / fps if len(right_peaks) > 1 else []
-    mean_interval = np.mean(intervals) if len(intervals) > 0 else 0
-
-    stroke_type = "catch-up" if mean_interval > 1.2 else "normal"
-
-    # posture
-    head_lift_score = float(np.mean(head_diff)) if len(head_diff) > 0 else 0
-    hip_sinking_score = float(np.mean(hip_diff)) if len(hip_diff) > 0 else 0
+    # -------------------------
+    # BODY + HEAD
+    # -------------------------
+    body_position = float(np.clip(1 - abs(np.mean(hip_diff)), 0, 1))
+    head_position = float(np.clip(1 - abs(np.mean(head_diff)), 0, 1))
 
     return {
-        "stroke_rate": float(stroke_rate),
-        "symmetry": float(symmetry_score),
-        "alternation": float(alternation_score),
-        "hip": float(hip_sinking_score),
-        "head": float(head_lift_score),
-        "stroke_type": stroke_type
+        "stroke_rate": stroke_rate,
+        "symmetry": symmetry,
+        "alternation": alternation,
+        "consistency": consistency,
+        "body_position": body_position,
+        "head_position": head_position
     }
-
-def normalize_metrics(metrics):
-    def clamp(x):
-        return max(0, min(1, x))
-
-    metrics["symmetry"] = clamp(metrics.get("symmetry", 1))
-    metrics["alternation"] = clamp(metrics.get("alternation", 1))
-    metrics["hip"] = clamp(metrics.get("hip", 1))
-    metrics["head"] = clamp(metrics.get("head", 1))
-
-    return metrics
